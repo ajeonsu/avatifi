@@ -87,6 +87,7 @@ create table if not exists fee_payouts (
 
 create table if not exists deals (
   id text primary key,
+  stage text,
   lead_date date,
   name text,
   company text,
@@ -117,8 +118,6 @@ create table if not exists deals (
   won_date date,
   customer text,
   result_date text,
-  updated_at text,
-  updated_by text,
   title text,
   business text,
   background text,
@@ -147,8 +146,6 @@ create table if not exists campaigns (
   image text,
   memo text,
   imported text,
-  updated_at text,
-  updated_by text,
   goal_people numeric,
   goal_apo numeric,
   goal_won numeric,
@@ -173,8 +170,6 @@ create table if not exists people (
   staff text,
   deal text,
   memo text,
-  updated_at text,
-  updated_by text,
   updated_at timestamptz,
   updated_by text
 );
@@ -196,8 +191,6 @@ create table if not exists cards (
   photo text,
   ocr text,
   deal text,
-  updated_at text,
-  updated_by text,
   updated_at timestamptz,
   updated_by text
 );
@@ -216,8 +209,6 @@ create table if not exists agencies (
   relation text,
   mtg date,
   imported text,
-  updated_at text,
-  updated_by text,
   updated_at timestamptz,
   updated_by text
 );
@@ -315,18 +306,17 @@ create table if not exists tasks (
   done text,
   done_at date,
   created_by text,
-  updated_at text,
-  updated_by text,
   updated_at timestamptz,
   updated_by text
 );
 comment on table tasks is 'タスク / entity=task';
 
+create index if not exists customers_name_idx on customers (name);
 create index if not exists deals_lead_date_idx on deals (lead_date);
 create index if not exists deals_source_idx on deals (source, source_detail);
 create index if not exists payments_due_date_idx on payments (due_date);
 create index if not exists requests_status_idx on requests (status);
-create index if not exists tasks_assignee_idx on tasks (assignee);
+create index if not exists tasks_person_idx on tasks (person);
 create index if not exists fee_payouts_month_agency_idx on fee_payouts (pay_month, agency);
 
 -- RLS: enable after auth model is locked with boss/client
