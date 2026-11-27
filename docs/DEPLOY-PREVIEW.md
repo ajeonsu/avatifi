@@ -17,10 +17,13 @@ Env for Vercel / local (Settings → API; share keys via secure channel only):
 
 ```
 SUPABASE_URL=https://qxzftftbvgysgzhqgfoz.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=…   # server only
-# or SUPABASE_ANON_KEY=… with RLS policies
-CRM_MOCK=0
+SUPABASE_SERVICE_ROLE_KEY=…   # server only (preferred)
+# or SUPABASE_ANON_KEY=… (OK while RLS is off for preview)
+CRM_FALLBACK_MOCK=1           # unimplemented app* fall back to mock
+# CRM_MOCK=1 is ignored when Supabase env is set unless CRM_FORCE_MOCK=1
 ```
+
+Preview seed: `scripts/seed-preview-data.sql` · passphrase `avatifi-preview-key-2026-ok`
 
 ## 2) Vercel (link GitHub → preview)
 

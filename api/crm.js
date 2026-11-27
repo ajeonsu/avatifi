@@ -29,7 +29,14 @@ const ALLOWED = new Set([
 
 function useMock() {
   const raw = process.env.CRM_MOCK;
-  return raw === '1' || String(raw || '').toLowerCase() === 'true';
+  const wantMock = raw === '1' || String(raw || '').toLowerCase() === 'true';
+  if (!wantMock) return false;
+  // When Supabase is wired, prefer it unless CRM_FORCE_MOCK=1 (keeps local mock override).
+  const force = process.env.CRM_FORCE_MOCK;
+  if (sb.configured() && force !== '1' && String(force || '').toLowerCase() !== 'true') {
+    return false;
+  }
+  return true;
 }
 
 function useFallbackMock() {
