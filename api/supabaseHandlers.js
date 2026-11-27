@@ -9,6 +9,7 @@ const sb = require('./supabaseClient');
 const { STAGES } = require('./mockStore');
 const { rowToCamel, rowsToCamel, patchToSnake, paymentToUi } = require('./fieldMap');
 const analytics = require('./analyticsHandlers');
+const settings = require('./settingsHandlers');
 
 async function safeSelect(table, query) {
   try {
@@ -961,7 +962,7 @@ async function appSettings(user) {
   } catch {
     rules = [];
   }
-  return {
+  const base = {
     users: (Array.isArray(users) ? users : []).map((u) => ({
       name: u.name,
       roles: Array.isArray(u.roles) ? u.roles : [],
@@ -982,6 +983,7 @@ async function appSettings(user) {
     holidays: Array.isArray(holidays) ? holidays.length : 0,
     meta: { backend: 'supabase' },
   };
+  return settings.enrichSettings(base);
 }
 
 /**
@@ -1157,6 +1159,46 @@ async function dispatchSupabase(fn, args) {
     }
     case 'appSettings':
       return appSettings(user);
+    case 'appSettingsSave':
+      return settings.appSettingsSave(user, rest[0], rest[1], appSettings);
+    case 'appImportHolidays':
+      return settings.appImportHolidays(user, appSettings);
+    case 'appHistory':
+      return settings.appHistory(user, rest[0]);
+    case 'appAddPerson':
+      return settings.appAddPerson(user, rest[0], rest[1]);
+    case 'appUserKey':
+      return settings.appUserKey(user, rest[0]);
+    case 'appPeopleToDeal':
+      return settings.appPeopleToDeal(user, rest[0], appSave);
+    case 'appCardToDeal':
+      return settings.appCardToDeal(user, rest[0], appSave);
+    case 'appCardUpload':
+      return settings.appCardUpload(user, rest[0], rest[1]);
+    case 'appFormAnswers':
+      return settings.appFormAnswers(user, rest[0]);
+    case 'appMakeFormLinks':
+      return settings.appMakeFormLinks(user);
+    case 'appImportPreview':
+      return settings.appImportPreview(user, rest[0]);
+    case 'appImportRun':
+      return settings.appImportRun(user, rest[0]);
+    case 'appKpi':
+      // Alias used by older UI paths — same as analysis slice for a single month.
+      return (async () => {
+        const core = await loadCoreTables();
+        const ym = String(rest[0] || ymNow()).trim();
+        const targets = (await loadKpiTargets(ym)).map((t) => Object.assign({ ym }, t));
+        return analytics.appAnalysis({
+          deals: core.deals,
+          custs: core.custs,
+          camps: core.camps,
+          targets,
+          fromYm: ym,
+          toYm: ym,
+          group: rest[1] || 'all',
+        });
+      })();
     default:
       return null;
   }
