@@ -122,6 +122,38 @@ const TABLE_OF = {
   task: { table: 'tasks', idKey: 'id' },
 };
 
+const ENTITY_LABEL = {
+  deal: '商談',
+  cust: '顧客',
+  req: '依頼',
+  camp: '施策',
+  agency: '代理店',
+  people: '参加者',
+  card: '名刺',
+  task: 'タスク',
+};
+
+function historyTarget(entity, row, id) {
+  const r = row || {};
+  const name = r.name || r.customer || r.cust || '';
+  const key = r.id || id || r.name || '';
+  return String((key + (name && name !== key ? ' ' + name : '')).trim() || key || entity);
+}
+
+function historyDiffItems(beforeCamel, changes) {
+  const items = [];
+  const before = beforeCamel || {};
+  const ch = changes || {};
+  Object.keys(ch).forEach((k) => {
+    if (k === 'updatedAt' || k === 'updatedBy') return;
+    const after = ch[k] == null ? '' : String(ch[k]);
+    const prev = before[k] == null ? '' : String(before[k]);
+    if (after === prev) return;
+    items.push({ label: k, before: prev, after });
+  });
+  return items;
+}
+
 async function appBoot(user) {
   return {
     user: {
@@ -269,6 +301,7 @@ async function appSave(user, entity, id, changes) {
   if (entity === 'task') return appTaskSave(user, id, changes);
   const meta = TABLE_OF[entity];
   if (!meta) throw new Error('保存できない表です：' + entity);
+  const label = ENTITY_LABEL[entity] || entity;
   const want = String(id == null ? '' : id).trim();
   const patch = patchToSnake(changes || {});
   patch.updated_at = new Date().toISOString();
@@ -277,6 +310,13 @@ async function appSave(user, entity, id, changes) {
   if (entity === 'deal' && !want && !patch.lead_date) patch.lead_date = todayYmd();
 
   if (want) {
+    let before = null;
+    try {
+      const prev = await sb.select(meta.table, `${meta.idKey}=eq.${encodeURIComponent(want)}&select=*&limit=1`);
+      before = Array.isArray(prev) && prev[0] ? rowToCamel(prev[0]) : null;
+    } catch {
+      before = null;
+    }
     const rows = await sb.update(
       meta.table,
       `${meta.idKey}=eq.${encodeURIComponent(want)}`,
@@ -284,7 +324,12 @@ async function appSave(user, entity, id, changes) {
     );
     const row = Array.isArray(rows) ? rows[0] : rows;
     if (!row) throw new Error('見つかりません：' + want);
-    return { row: rowToCamel(row), notes: ['更新（supabase）'] };
+    const camel = rowToCamel(row);
+    const items = historyDiffItems(before, changes || {});
+    if (items.length) {
+      await settings.logHistory(user.name, label + 'を直した', historyTarget(entity, camel, want), items);
+    }
+    return { row: camel, notes: ['更新（supabase）'] };
   }
 
   if (meta.idKey === 'id' && !patch.id) {
@@ -297,16 +342,37 @@ async function appSave(user, entity, id, changes) {
   if (meta.idKey === 'name' && !patch.name) throw new Error('名前がありません');
 
   const rows = await sb.insert(meta.table, [patch]);
-  return { row: rowToCamel(Array.isArray(rows) ? rows[0] : rows), notes: ['新規（supabase）'] };
+  const camel = rowToCamel(Array.isArray(rows) ? rows[0] : rows);
+  await settings.logHistory(
+    user.name,
+    label + 'を作った',
+    historyTarget(entity, camel, camel && camel.id),
+    historyDiffItems({}, changes || {})
+  );
+  return { row: camel, notes: ['新規（supabase）'] };
 }
 
 async function appDelete(user, entity, id) {
   const meta = TABLE_OF[entity];
   if (!meta) throw new Error('消せない表です：' + entity);
+  const label = ENTITY_LABEL[entity] || entity;
   const want = String(id == null ? '' : id).trim();
   if (!want) throw new Error('どれを消すかが分かりません');
+  let before = null;
+  try {
+    const prev = await sb.select(meta.table, `${meta.idKey}=eq.${encodeURIComponent(want)}&select=*&limit=1`);
+    before = Array.isArray(prev) && prev[0] ? rowToCamel(prev[0]) : null;
+  } catch {
+    before = null;
+  }
   const rows = await sb.del(meta.table, `${meta.idKey}=eq.${encodeURIComponent(want)}`);
   if (!rows || (Array.isArray(rows) && !rows.length)) throw new Error('見つかりません：' + want);
+  await settings.logHistory(
+    user.name,
+    label + 'を消した',
+    historyTarget(entity, before, want),
+    []
+  );
   return { notes: ['削除（supabase）'] };
 }
 
@@ -404,10 +470,32 @@ async function appTaskSave(user, id, changes) {
   patch.updated_by = user.name;
   if (patch.title !== undefined) patch.title = String(patch.title).trim();
   if (want) {
+    let before = null;
+    try {
+      const prev = await sb.select('tasks', `id=eq.${encodeURIComponent(want)}&select=*&limit=1`);
+      before = Array.isArray(prev) && prev[0] ? rowToCamel(prev[0]) : null;
+    } catch {
+      before = null;
+    }
     const rows = await sb.update('tasks', `id=eq.${encodeURIComponent(want)}`, patch);
     const row = Array.isArray(rows) ? rows[0] : rows;
     if (!row) throw new Error('見つかりません：' + want);
-    return { row: rowToCamel(row), notes: ['更新（supabase）'] };
+    const camel = rowToCamel(row);
+    const items = historyDiffItems(before, changes || {});
+    const isDoneToggle = Object.prototype.hasOwnProperty.call(changes || {}, 'done') ||
+      Object.prototype.hasOwnProperty.call(changes || {}, 'doneAt');
+    if (isDoneToggle) {
+      const on = !!(camel.done || camel.doneAt);
+      await settings.logHistory(
+        user.name,
+        on ? 'タスクを済みにした' : 'タスクを戻した',
+        historyTarget('task', camel, want),
+        [{ label: '済み', before: before && (before.done || before.doneAt) ? '済' : '', after: on ? '済' : '' }]
+      );
+    } else if (items.length) {
+      await settings.logHistory(user.name, 'タスクを直した', historyTarget('task', camel, want), items);
+    }
+    return { row: camel, notes: ['更新（supabase）'] };
   }
   if (!patch.id) {
     const existing = await sb.select('tasks', 'select=id&limit=5000');
@@ -416,7 +504,14 @@ async function appTaskSave(user, id, changes) {
   }
   if (!patch.created_by) patch.created_by = user.name;
   const rows = await sb.insert('tasks', [patch]);
-  return { row: rowToCamel(Array.isArray(rows) ? rows[0] : rows), notes: ['新規（supabase）'] };
+  const camel = rowToCamel(Array.isArray(rows) ? rows[0] : rows);
+  await settings.logHistory(
+    user.name,
+    'タスクを作った',
+    historyTarget('task', camel, camel && camel.id),
+    historyDiffItems({}, changes || {})
+  );
+  return { row: camel, notes: ['新規（supabase）'] };
 }
 
 async function appTaskDone(user, id, done) {
@@ -521,6 +616,12 @@ async function appPayEdit(user, pay) {
       }),
     ]);
   }
+  const who = String(patch.customer || (hit && hit.customer) || '');
+  const what = ok ? '入金を確認した' : ng ? '入金を未確認にした' : '入金を直した';
+  await settings.logHistory(user.name, what, (who + ' ' + String((hit && hit.kind) || '')).trim() || key, [
+    { label: '状態', before: hit ? String(hit.status || '') : '', after: status },
+    { label: '金額', before: hit && hit.amount != null ? String(hit.amount) : '', after: String(patch.amount == null ? '' : patch.amount) },
+  ]);
   return {
     ok,
     ng,
@@ -540,10 +641,11 @@ async function appPayAdd(user, pay) {
   const amount = Number(pay && pay.amount);
   if (!amount) throw new Error('金額を入れてください');
   const key = 'M' + crypto.randomBytes(6).toString('hex');
+  const customer = String((pay && pay.customer) || '');
   await sb.insert('payments', [
     {
       pay_key: key,
-      customer: String((pay && pay.customer) || ''),
+      customer,
       method: String((pay && pay.method) || ''),
       amount,
       charge_date: date,
@@ -554,6 +656,9 @@ async function appPayAdd(user, pay) {
       updated_at: new Date().toISOString(),
       updated_by: user.name,
     },
+  ]);
+  await settings.logHistory(user.name, '入金を手で足した', customer || key, [
+    { label: '金額', before: '', after: String(amount) },
   ]);
   return { key };
 }
@@ -566,6 +671,12 @@ async function appPayDelete(user, payKey) {
   const hit = await findPaymentByKey(k);
   if (!hit) throw new Error('この入金が見つかりません（ほかの人が消したかもしれません。読み直してください）');
   await sb.del('payments', `pay_key=eq.${encodeURIComponent(k)}`);
+  await settings.logHistory(
+    user.name,
+    '入金を消した',
+    String((hit.customer || '') + ' ' + (hit.kind || '')).trim() || k,
+    []
+  );
   return { ok: true };
 }
 
@@ -590,6 +701,11 @@ async function appReqStatus(user, id, status, memo) {
   }
   const updated = await sb.update('requests', `id=eq.${encodeURIComponent(want)}`, patch);
   const row = rowToCamel(Array.isArray(updated) ? updated[0] : updated);
+  if (before !== to) {
+    await settings.logHistory(user.name, '依頼の状態を変えた', want, [
+      { label: '状態', before, after: to },
+    ]);
+  }
   return {
     row,
     notes: before === to ? [] : [`状態を「${before || '（空）'}」→「${to}」にした（supabase・台帳自動は未移植）`],
@@ -609,6 +725,9 @@ async function appReqMemo(user, id, text) {
     updated_at: new Date().toISOString(),
     updated_by: user.name,
   });
+  await settings.logHistory(user.name, '依頼にメモを足した', want, [
+    { label: 'メモ', before: '', after: String(text).trim() },
+  ]);
   return { row: rowToCamel(Array.isArray(updated) ? updated[0] : updated) };
 }
 
@@ -665,7 +784,19 @@ async function appReqCost(user, id, vals) {
     if (s !== '' && Number.isNaN(Number(s))) throw new Error('実績は数字で入れてください：' + vals[camel]);
     patch[snake] = s === '' ? null : Number(s);
   });
+  const items = [];
+  [['actUsd', 'act_usd'], ['actEl', 'act_el']].forEach(([camel, snake]) => {
+    if (!vals || vals[camel] === undefined) return;
+    items.push({
+      label: camel,
+      before: hit[snake] == null ? '' : String(hit[snake]),
+      after: vals[camel] == null ? '' : String(vals[camel]),
+    });
+  });
   const updated = await sb.update('requests', `id=eq.${encodeURIComponent(want)}`, patch);
+  if (items.length) {
+    await settings.logHistory(user.name, '依頼の実績を入れた', want, items);
+  }
   return { row: rowToCamel(Array.isArray(updated) ? updated[0] : updated) };
 }
 
@@ -930,10 +1061,16 @@ async function appGoalSave(user, ym, person, target) {
   Object.keys(vals).forEach((k) => {
     if (vals[k] !== undefined) patch[k] = vals[k];
   });
+  const done = Object.keys(vals)
+    .filter((k) => vals[k] !== undefined)
+    .map((k) => ({ label: k, before: '', after: vals[k] == null ? '' : String(vals[k]) }));
   if (hit) {
     await sb.update('kpi_targets', `id=eq.${hit.id}`, patch);
   } else {
     await sb.insert('kpi_targets', [patch]);
+  }
+  if (done.length) {
+    await settings.logHistory(user.name, '目標を直した', month + ' ' + who, done);
   }
   return { ok: true };
 }
@@ -967,6 +1104,9 @@ async function appKpiTargets(user, ym, person, rows) {
       amount: r.amount === '' || r.amount == null ? null : Number(r.amount),
     }));
   if (add.length) await sb.insert('kpi_targets', add);
+  await settings.logHistory(user.name, 'KPIの目標を直した', month + ' ' + who, [
+    { label: '行の数', before: '', after: String(add.length) },
+  ]);
   return { saved: add.length, kept: keepRows.length };
 }
 
@@ -1110,9 +1250,13 @@ async function dispatchSupabase(fn, args) {
         'revenue_plans',
         `ym=eq.${encodeURIComponent(ym)}&select=ym&limit=1`
       );
+      const before = existing[0] && existing[0].plan_new != null ? String(existing[0].plan_new) : '';
       const patch = { ym, plan_new: s === '' ? null : Number(s), updated_at: new Date().toISOString(), updated_by: user.name };
       if (existing[0]) await sb.update('revenue_plans', `ym=eq.${encodeURIComponent(ym)}`, patch);
       else await sb.insert('revenue_plans', [patch]);
+      await settings.logHistory(user.name, '売上の新規の見込みを直した', String(ym), [
+        { label: '件数', before, after: s },
+      ]);
       return { ok: true };
     }
     case 'appChurn': {
@@ -1164,12 +1308,28 @@ async function dispatchSupabase(fn, args) {
         updated_at: new Date().toISOString(),
         updated_by: user.name,
       };
-      if (patchIn.adj !== undefined) patch.adjust_incl_tax = patchIn.adj === '' || patchIn.adj == null ? null : Number(patchIn.adj);
-      if (patchIn.paid !== undefined) patch.paid_incl_tax = patchIn.paid === '' || patchIn.paid == null ? null : Number(patchIn.paid);
-      if (patchIn.paidDate !== undefined) patch.paid_on = patchIn.paidDate || null;
-      if (patchIn.memo !== undefined) patch.memo = String(patchIn.memo || '');
+      const done = [];
+      if (patchIn.adj !== undefined) {
+        patch.adjust_incl_tax = patchIn.adj === '' || patchIn.adj == null ? null : Number(patchIn.adj);
+        done.push({ label: '調整', before: '', after: String(patchIn.adj == null ? '' : patchIn.adj) });
+      }
+      if (patchIn.paid !== undefined) {
+        patch.paid_incl_tax = patchIn.paid === '' || patchIn.paid == null ? null : Number(patchIn.paid);
+        done.push({ label: '支払済', before: '', after: String(patchIn.paid == null ? '' : patchIn.paid) });
+      }
+      if (patchIn.paidDate !== undefined) {
+        patch.paid_on = patchIn.paidDate || null;
+        done.push({ label: '支払日', before: '', after: String(patchIn.paidDate || '') });
+      }
+      if (patchIn.memo !== undefined) {
+        patch.memo = String(patchIn.memo || '');
+        done.push({ label: 'メモ', before: '', after: String(patchIn.memo || '') });
+      }
       if (existing[0]) await sb.update('fee_payouts', `id=eq.${existing[0].id}`, patch);
       else await sb.insert('fee_payouts', [patch]);
+      if (done.length) {
+        await settings.logHistory(user.name, '代理店フィーの支払いを直した', month + ' ' + agency, done);
+      }
       return { ok: true };
     }
     case 'appReferrals': {

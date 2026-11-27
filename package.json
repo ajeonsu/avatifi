@@ -11,6 +11,8 @@
     "import:dry-run": "node scripts/import-csv-dry-run.js",
     "integrity:preview": "node scripts/integrity-preview-report.js",
     "integrity:sheets": "node scripts/integrity-compare-sheets.js",
+    "integrity:preview-self": "node scripts/dump-preview-csv.js && node scripts/integrity-compare-sheets.js fixtures/preview-seed-csv",
+    "dump:preview-csv": "node scripts/dump-preview-csv.js",
     "import:apply": "node scripts/import-csv-apply.js",
     "perf:baseline": "node scripts/perf-baseline.js",
     "preview:mock": "node \"../Avatifi管理システム_デプロイ用_20261125/2_ソース/画面を手元で見る.js\"",

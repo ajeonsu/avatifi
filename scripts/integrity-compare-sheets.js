@@ -25,6 +25,8 @@ const ALIAS = {
   cust: ['顧客.csv', 'customers.csv', 'cust.csv'],
   req: ['依頼.csv', 'requests.csv', 'req.csv'],
   pay: ['入金.csv', 'payments.csv', 'pay.csv'],
+  camp: ['施策.csv', 'campaigns.csv', 'camp.csv'],
+  agency: ['代理店.csv', 'agencies.csv', 'agency.csv'],
 };
 
 function findFile(dir, names) {
@@ -141,6 +143,8 @@ function stageDist(deals) {
     cust: findFile(dir, ALIAS.cust),
     req: findFile(dir, ALIAS.req),
     pay: findFile(dir, ALIAS.pay),
+    camp: findFile(dir, ALIAS.camp),
+    agency: findFile(dir, ALIAS.agency),
   };
   const found = Object.values(files).filter(Boolean);
   if (!found.length) {
@@ -153,14 +157,18 @@ function stageDist(deals) {
     cust: csvCount(files.cust),
     req: csvCount(files.req),
     pay: csvCount(files.pay),
+    camp: csvCount(files.camp),
+    agency: csvCount(files.agency),
   };
 
-  const [boot, deals, custs, reqs, pays] = await Promise.all([
+  const [boot, deals, custs, reqs, pays, camps, agencies] = await Promise.all([
     crm('appBoot'),
     crm('appList', ['deal']),
     crm('appList', ['cust']),
     crm('appList', ['req']),
     crm('appPayments'),
+    crm('appList', ['camp']),
+    crm('appList', ['agency']),
   ]);
 
   const sb = {
@@ -168,6 +176,8 @@ function stageDist(deals) {
     customers: custs.length,
     requests: reqs.length,
     payments: (pays.rows || pays || []).length,
+    camps: camps.length,
+    agencies: agencies.length,
     dealStages: stageDist(deals),
   };
 
@@ -180,6 +190,8 @@ function stageDist(deals) {
   pushDiff('cust', sheet.cust.file ? sheet.cust.rows : null, sb.customers);
   pushDiff('req', sheet.req.file ? sheet.req.rows : null, sb.requests);
   pushDiff('pay', sheet.pay.file ? sheet.pay.rows : null, sb.payments);
+  pushDiff('camp', sheet.camp.file ? sheet.camp.rows : null, sb.camps);
+  pushDiff('agency', sheet.agency.file ? sheet.agency.rows : null, sb.agencies);
 
   const report = {
     generatedAt: new Date().toISOString(),
