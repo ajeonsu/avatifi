@@ -1149,12 +1149,34 @@ async function appSettings(user) {
   return settings.enrichSettings(base);
 }
 
+/** GAS crmAuthProd_ allowlist — 制作-only users may call only these. */
+const PROD_ONLY_FNS = new Set([
+  'appBoot',
+  'appList', // entity must be req (enforced in appList)
+  'appReqStatus',
+  'appReqMemo',
+  'appReqCost',
+  'appMonthCounts',
+  'appFormAnswers',
+  'appHistory', // request targets only (enforced below)
+]);
+
+function assertNotProdBlocked(user, fn) {
+  if (!user.prodOnly) return;
+  if (!PROD_ONLY_FNS.has(fn)) {
+    throw new Error(
+      `${user.name}さんは「制作」の役割なので、制作（依頼・月の本数・フォームの回答）だけが見られます`
+    );
+  }
+}
+
 /**
  * @returns {Promise<unknown>|null} null if fn not implemented on Supabase path
  */
 async function dispatchSupabase(fn, args) {
   if (!sb.configured()) return null;
   const user = await authByPassphrase(args[0]);
+  assertNotProdBlocked(user, fn);
   const rest = args.slice(1);
   switch (fn) {
     case 'appBoot':
@@ -1346,8 +1368,16 @@ async function dispatchSupabase(fn, args) {
       return settings.appSettingsSave(user, rest[0], rest[1], appSettings);
     case 'appImportHolidays':
       return settings.appImportHolidays(user, appSettings);
-    case 'appHistory':
-      return settings.appHistory(user, rest[0]);
+    case 'appHistory': {
+      const target = String(rest[0] || '').trim();
+      if (user.prodOnly) {
+        const reqs = await safeSelect('requests', `id=eq.${encodeURIComponent(target)}&select=id&limit=1`);
+        if (!reqs[0]) {
+          throw new Error('「制作」の役割の人は、依頼の記録だけが見られます');
+        }
+      }
+      return settings.appHistory(user, target);
+    }
     case 'appAddPerson':
       return settings.appAddPerson(user, rest[0], rest[1]);
     case 'appUserKey':

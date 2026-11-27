@@ -19,6 +19,7 @@ Env for Vercel / local (Settings → API; share keys via secure channel only):
 ```
 SUPABASE_URL=https://qxzftftbvgysgzhqgfoz.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=…   # server only (preferred)
+# 2026-11-27: set on Vercel Production for avatifi (value secret; not committed).
 # or SUPABASE_ANON_KEY=… (OK while RLS is off for preview)
 CRM_FALLBACK_MOCK=1           # unimplemented app* fall back to mock
 # CRM_MOCK=1 is ignored when Supabase env is set unless CRM_FORCE_MOCK=1
