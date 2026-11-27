@@ -2,10 +2,13 @@
  * Vercel serverless entry — mirrors GAS doPost crmApi_ contract.
  * Body: text/plain JSON { crm:1, fn, args:[passphrase,...] }
  * Response: { ok, crm:1, value } | { ok:false, crm:1, error }  (Vue UI requires crm:1)
- * Phase 1: wire to Supabase. CRM_MOCK=1 → local sample store (never prod).
+ *
+ * Order: CRM_MOCK=1 → mock store; else Supabase env → supabaseHandlers; else 501.
  */
 
 const { dispatchMock } = require('./mockStore');
+const { dispatchSupabase } = require('./supabaseHandlers');
+const sb = require('./supabaseClient');
 
 const ALLOWED = new Set([
   'appAddPerson', 'appAgencyStats', 'appAnalysis', 'appBoot', 'appCardToDeal',
@@ -81,18 +84,38 @@ module.exports = async function handler(req, res) {
     }
   }
 
-  // Preview stub — Supabase handlers land in Phase 1
+  if (sb.configured()) {
+    try {
+      const value = await dispatchSupabase(body.fn, args);
+      if (value != null) {
+        return sendJson(res, 200, { ok: true, crm: 1, value });
+      }
+      return sendJson(res, 501, {
+        ok: false,
+        crm: 1,
+        error: `${body.fn} not implemented on Supabase yet`,
+      });
+    } catch (err) {
+      const status = err && err.status ? err.status : 400;
+      return sendJson(res, status >= 400 && status < 600 ? status : 400, {
+        ok: false,
+        crm: 1,
+        error: err.message || String(err),
+      });
+    }
+  }
+
   return sendJson(res, 501, {
     ok: false,
     crm: 1,
-    error: `${body.fn} not implemented yet (Supabase Phase 1)`,
+    error: `${body.fn} not implemented yet (set CRM_MOCK=1 or SUPABASE_URL + key)`,
     meta: {
-      service: 'avatifi-crm-migration',
-      phase: '0/1-scaffold',
+      service: 'avatifi-crm',
+      phase: '1-wiring',
       fn: body.fn,
-      hint: 'Set CRM_MOCK=1 for local sample responses',
       github: 'https://github.com/ajeonsu/avatifi',
       supabaseRef: 'qxzftftbvgysgzhqgfoz',
+      vercelTeam: 'taoyagi-4963s-projects',
     },
   });
 };
