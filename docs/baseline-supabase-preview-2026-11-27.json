@@ -1,0 +1,17 @@
+{
+  "generatedAt": "2026-11-27T06:26:57.104Z",
+  "backend": "supabase",
+  "url": "https://avatifi.vercel.app",
+  "note": "Cold/warm mix over Vercel serverless + Supabase REST; p50/p90 from 5 samples each. Compare to docs/baseline-mock-2026-11-27.json (local mock, not same host).",
+  "results": [
+    { "fn": "appBoot", "n": 5, "p50": 937, "p90": 1432, "samples": [541, 924, 937, 951, 1432] },
+    { "fn": "appHome", "n": 5, "p50": 1875, "p90": 3140, "samples": [1445, 1852, 1875, 1905, 3140] },
+    { "fn": "appList(deal)", "n": 5, "p50": 1100, "p90": 1538, "samples": [738, 754, 1100, 1178, 1538] },
+    { "fn": "appList(cust)", "n": 5, "p50": 768, "p90": 1162, "samples": [721, 760, 768, 1146, 1162] },
+    { "fn": "appList(req)", "n": 5, "p50": 870, "p90": 1191, "samples": [715, 771, 870, 1140, 1191] },
+    { "fn": "appPayments", "n": 5, "p50": 1015, "p90": 1318, "samples": [944, 970, 1015, 1041, 1318] },
+    { "fn": "appTasks", "n": 5, "p50": 753, "p90": 755, "samples": [733, 748, 753, 755, 755] },
+    { "fn": "appGoals", "n": 5, "p50": 2028, "p90": 2179, "samples": [1644, 1669, 2028, 2138, 2179] },
+    { "fn": "appMonthCounts", "n": 5, "p50": 957, "p90": 1371, "samples": [938, 949, 957, 958, 1371] }
+  ]
+}
