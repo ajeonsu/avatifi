@@ -7,6 +7,7 @@
     "gen:schema": "node _gen_schema.js",
     "dev": "vercel dev",
     "test:mock-api": "node scripts/smoke-mock-api.js",
+    "test:field-map": "node scripts/smoke-field-map.js",
     "import:dry-run": "node scripts/import-csv-dry-run.js",
     "preview:mock": "node \"../Avatifi管理システム_デプロイ用_20261125/2_ソース/画面を手元で見る.js\"",
     "preview:mock:netlify": "node \"../Avatifi管理システム_デプロイ用_20261125/2_ソース/画面を手元で見る.js\" --netlify",
