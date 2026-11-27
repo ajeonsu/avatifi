@@ -9,6 +9,8 @@
     "test:mock-api": "node scripts/smoke-mock-api.js",
     "test:field-map": "node scripts/smoke-field-map.js",
     "import:dry-run": "node scripts/import-csv-dry-run.js",
+    "integrity:preview": "node scripts/integrity-preview-report.js",
+    "integrity:sheets": "node scripts/integrity-compare-sheets.js",
     "preview:mock": "node \"../Avatifi管理システム_デプロイ用_20261125/2_ソース/画面を手元で見る.js\"",
     "preview:mock:netlify": "node \"../Avatifi管理システム_デプロイ用_20261125/2_ソース/画面を手元で見る.js\" --netlify",
     "build": "echo \"Static public/ + api/crm — no build step\""

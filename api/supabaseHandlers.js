@@ -10,6 +10,7 @@ const { STAGES } = require('./mockStore');
 const { rowToCamel, rowsToCamel, patchToSnake, paymentToUi } = require('./fieldMap');
 const analytics = require('./analyticsHandlers');
 const settings = require('./settingsHandlers');
+const { buildAutoTasks } = require('./autoTasks');
 
 async function safeSelect(table, query) {
   try {
@@ -362,15 +363,37 @@ async function appDealMove(user, id, stage, extra) {
 }
 
 async function appTasks(user) {
-  const rows = await sb.select('tasks', 'select=*&order=due.asc.nullslast&limit=5000');
-  const manual = rowsToCamel(Array.isArray(rows) ? rows : []).map((t) =>
-    Object.assign({}, t, { person: t.person || '（担当なし）', auto: false })
-  );
+  const today = todayYmd();
+  const [taskRows, core] = await Promise.all([
+    sb.select('tasks', 'select=*&order=due.asc.nullslast&limit=5000'),
+    loadCoreTables(),
+  ]);
+  const manual = rowsToCamel(Array.isArray(taskRows) ? taskRows : [])
+    .filter((t) => {
+      if (!t.done && !t.doneAt) return true;
+      const doneAt = String(t.doneAt || t.done || '').slice(0, 10);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(doneAt)) return !t.done;
+      const lim = ymdPlus(today, -14);
+      return doneAt >= lim;
+    })
+    .map((t) => Object.assign({}, t, { person: t.person || '（担当なし）', auto: false }));
+
+  const auto = buildAutoTasks({
+    deals: core.deals,
+    custs: core.custs,
+    pays: core.pays,
+    reqs: core.reqs,
+    camps: core.camps,
+    cats: BOOT_CATS,
+    today,
+  });
+
   return {
     me: user.name,
-    today: todayYmd(),
-    auto: [],
+    today,
+    auto,
     manual,
+    meta: { backend: 'supabase', autoCount: auto.length, manualCount: manual.length },
   };
 }
 
