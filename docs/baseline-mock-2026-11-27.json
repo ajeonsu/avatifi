@@ -1,0 +1,65 @@
+[
+    {
+        "fn":  "appBoot",
+        "ok":  true,
+        "min_ms":  26,
+        "p50_ms":  33,
+        "max_ms":  162,
+        "bytes":  11534,
+        "err":  ""
+    },
+    {
+        "fn":  "appHome",
+        "ok":  true,
+        "min_ms":  24,
+        "p50_ms":  25,
+        "max_ms":  48,
+        "bytes":  8566,
+        "err":  ""
+    },
+    {
+        "fn":  "appList:deal",
+        "ok":  true,
+        "min_ms":  21,
+        "p50_ms":  21,
+        "max_ms":  25,
+        "bytes":  6546,
+        "err":  ""
+    },
+    {
+        "fn":  "appList:cust",
+        "ok":  true,
+        "min_ms":  31,
+        "p50_ms":  32,
+        "max_ms":  33,
+        "bytes":  4239,
+        "err":  ""
+    },
+    {
+        "fn":  "appList:req",
+        "ok":  true,
+        "min_ms":  18,
+        "p50_ms":  26,
+        "max_ms":  29,
+        "bytes":  2902,
+        "err":  ""
+    },
+    {
+        "fn":  "appPayments",
+        "ok":  true,
+        "min_ms":  18,
+        "p50_ms":  19,
+        "max_ms":  30,
+        "bytes":  7190,
+        "err":  ""
+    },
+    {
+        "fn":  "appTasks",
+        "ok":  true,
+        "min_ms":  21,
+        "p50_ms":  22,
+        "max_ms":  97,
+        "bytes":  2371,
+        "err":  ""
+    }
+]

@@ -1,0 +1,1064 @@
+{
+  "generatedAt": "2026-11-27T05:31:44.060Z",
+  "source": "営業.gs CRM_*_FIELDS + app* exports",
+  "sheetTabs": [
+    "設定",
+    "商談",
+    "施策",
+    "参加者",
+    "名刺",
+    "代理店",
+    "顧客",
+    "トライアル",
+    "依頼",
+    "入金",
+    "KPI目標",
+    "履歴",
+    "フィーの支払い",
+    "タスク"
+  ],
+  "appFunctions": [
+    "appAddPerson",
+    "appAgencyStats",
+    "appAnalysis",
+    "appBoot",
+    "appCardToDeal",
+    "appCardUpload",
+    "appChurn",
+    "appCustBulk",
+    "appCustomerActivity",
+    "appDealBulk",
+    "appDealMove",
+    "appDelete",
+    "appFeePayouts",
+    "appFeeSave",
+    "appFormAnswers",
+    "appGoalSave",
+    "appGoals",
+    "appHistory",
+    "appHome",
+    "appImportHolidays",
+    "appImportPreview",
+    "appImportRun",
+    "appKpi",
+    "appKpiTargets",
+    "appList",
+    "appMakeFormLinks",
+    "appMonthCounts",
+    "appPayAdd",
+    "appPayConfirm",
+    "appPayDelete",
+    "appPayEdit",
+    "appPayments",
+    "appPeopleToDeal",
+    "appReferrals",
+    "appReqCost",
+    "appReqMemo",
+    "appReqStatus",
+    "appRevenue",
+    "appRevenuePlan",
+    "appSave",
+    "appSettings",
+    "appSettingsSave",
+    "appTaskDelete",
+    "appTaskDone",
+    "appTaskSave",
+    "appTasks",
+    "appUserKey"
+  ],
+  "entities": {
+    "deal": {
+      "tab": "商談",
+      "table": "deals",
+      "fields": [
+        {
+          "key": "id",
+          "label": "商談ID",
+          "type": "id"
+        },
+        {
+          "key": "leadDate",
+          "label": "リード獲得日",
+          "type": "date"
+        },
+        {
+          "key": "name",
+          "label": "お名前",
+          "type": "text"
+        },
+        {
+          "key": "company",
+          "label": "会社名",
+          "type": "text"
+        },
+        {
+          "key": "industry",
+          "label": "業種",
+          "type": "text"
+        },
+        {
+          "key": "channel",
+          "label": "連絡手段",
+          "type": "choice:連絡手段"
+        },
+        {
+          "key": "email",
+          "label": "メールアドレス",
+          "type": "text"
+        },
+        {
+          "key": "sns",
+          "label": "SNSのURL",
+          "type": "url"
+        },
+        {
+          "key": "followers",
+          "label": "フォロワー数",
+          "type": "number"
+        },
+        {
+          "key": "source",
+          "label": "経路",
+          "type": "choice:経路"
+        },
+        {
+          "key": "sourceDetail",
+          "label": "経路の詳細",
+          "type": "text"
+        },
+        {
+          "key": "leadOwner",
+          "label": "リード獲得者",
+          "type": "person"
+        },
+        {
+          "key": "apoOwner",
+          "label": "アポ獲得者",
+          "type": "person"
+        },
+        {
+          "key": "apoDate",
+          "label": "アポ獲得日",
+          "type": "date"
+        },
+        {
+          "key": "sentText",
+          "label": "送った文面",
+          "type": "longtext"
+        },
+        {
+          "key": "replyText",
+          "label": "返ってきた文面",
+          "type": "longtext"
+        },
+        {
+          "key": "proposal",
+          "label": "提案する商材",
+          "type": "choice:サービス"
+        },
+        {
+          "key": "closer",
+          "label": "商談者",
+          "type": "person"
+        },
+        {
+          "key": "meetPlan",
+          "label": "商談予定日",
+          "type": "date"
+        },
+        {
+          "key": "meetDate",
+          "label": "商談実施日",
+          "type": "date"
+        },
+        {
+          "key": "result",
+          "label": "商談結果",
+          "type": "choice:商談結果"
+        },
+        {
+          "key": "reason",
+          "label": "結果の理由",
+          "type": "text"
+        },
+        {
+          "key": "nextDate",
+          "label": "次の連絡日",
+          "type": "date"
+        },
+        {
+          "key": "hearing",
+          "label": "ヒアリングメモ",
+          "type": "longtext"
+        },
+        {
+          "key": "memo",
+          "label": "メモ",
+          "type": "longtext"
+        },
+        {
+          "key": "wonService",
+          "label": "受注した商材",
+          "type": "choice:サービス"
+        },
+        {
+          "key": "wonInit",
+          "label": "受注：初期費用（税込）",
+          "type": "yen"
+        },
+        {
+          "key": "wonFee",
+          "label": "受注：月額（税込）",
+          "type": "yen"
+        },
+        {
+          "key": "wonDate",
+          "label": "受注日",
+          "type": "date"
+        },
+        {
+          "key": "customer",
+          "label": "顧客名（台帳）",
+          "type": "ro"
+        },
+        {
+          "key": "resultDate",
+          "label": "結果を変えた日",
+          "type": "ro"
+        },
+        {
+          "key": "updatedAt",
+          "label": "最終更新",
+          "type": "ro-dt"
+        },
+        {
+          "key": "updatedBy",
+          "label": "更新した人",
+          "type": "ro"
+        },
+        {
+          "key": "title",
+          "label": "役職",
+          "type": "text"
+        },
+        {
+          "key": "business",
+          "label": "事業内容",
+          "type": "text"
+        },
+        {
+          "key": "background",
+          "label": "事前課題（参加背景）",
+          "type": "longtext"
+        }
+      ]
+    },
+    "camp": {
+      "tab": "施策",
+      "table": "campaigns",
+      "fields": [
+        {
+          "key": "id",
+          "label": "施策ID",
+          "type": "id"
+        },
+        {
+          "key": "name",
+          "label": "施策名",
+          "type": "text"
+        },
+        {
+          "key": "kind",
+          "label": "種類",
+          "type": "choice:施策の種類"
+        },
+        {
+          "key": "theme",
+          "label": "テーマ",
+          "type": "text"
+        },
+        {
+          "key": "date",
+          "label": "開催日",
+          "type": "date"
+        },
+        {
+          "key": "time",
+          "label": "時間",
+          "type": "text"
+        },
+        {
+          "key": "format",
+          "label": "形式",
+          "type": "choice:形式"
+        },
+        {
+          "key": "state",
+          "label": "開催の状態",
+          "type": "choice:開催の状態"
+        },
+        {
+          "key": "partner",
+          "label": "協業者",
+          "type": "text"
+        },
+        {
+          "key": "speaker",
+          "label": "講演者",
+          "type": "text"
+        },
+        {
+          "key": "pm",
+          "label": "PM",
+          "type": "person"
+        },
+        {
+          "key": "place",
+          "label": "場所",
+          "type": "longtext"
+        },
+        {
+          "key": "fee",
+          "label": "参加費用",
+          "type": "text"
+        },
+        {
+          "key": "entry",
+          "label": "参加者の管理",
+          "type": "url"
+        },
+        {
+          "key": "planned",
+          "label": "参加予定人数",
+          "type": "text"
+        },
+        {
+          "key": "schedule",
+          "label": "タイムスケジュール",
+          "type": "longtext"
+        },
+        {
+          "key": "image",
+          "label": "集客用画像",
+          "type": "text"
+        },
+        {
+          "key": "memo",
+          "label": "備考",
+          "type": "longtext"
+        },
+        {
+          "key": "imported",
+          "label": "参加者（取り込み）",
+          "type": "longtext"
+        },
+        {
+          "key": "updatedAt",
+          "label": "最終更新",
+          "type": "ro-dt"
+        },
+        {
+          "key": "updatedBy",
+          "label": "更新した人",
+          "type": "ro"
+        },
+        {
+          "key": "goalPeople",
+          "label": "目標の参加者数",
+          "type": "number"
+        },
+        {
+          "key": "goalApo",
+          "label": "目標のアポ",
+          "type": "number"
+        },
+        {
+          "key": "goalWon",
+          "label": "目標の契約",
+          "type": "number"
+        },
+        {
+          "key": "goalAmount",
+          "label": "目標の金額",
+          "type": "yen"
+        },
+        {
+          "key": "material",
+          "label": "資料（URL）",
+          "type": "url"
+        },
+        {
+          "key": "banner",
+          "label": "募集バナー（URL）",
+          "type": "url"
+        }
+      ]
+    },
+    "people": {
+      "tab": "参加者",
+      "table": "people",
+      "fields": [
+        {
+          "key": "id",
+          "label": "参加者ID",
+          "type": "id"
+        },
+        {
+          "key": "camp",
+          "label": "施策ID",
+          "type": "text"
+        },
+        {
+          "key": "campName",
+          "label": "施策名",
+          "type": "text"
+        },
+        {
+          "key": "company",
+          "label": "会社名",
+          "type": "text"
+        },
+        {
+          "key": "name",
+          "label": "お名前",
+          "type": "text"
+        },
+        {
+          "key": "title",
+          "label": "役職",
+          "type": "text"
+        },
+        {
+          "key": "background",
+          "label": "事前課題（参加背景）",
+          "type": "longtext"
+        },
+        {
+          "key": "business",
+          "label": "事業内容",
+          "type": "text"
+        },
+        {
+          "key": "state",
+          "label": "参加",
+          "type": "choice:参加の結果"
+        },
+        {
+          "key": "staff",
+          "label": "担当（社内）",
+          "type": "person"
+        },
+        {
+          "key": "deal",
+          "label": "商談ID",
+          "type": "ro"
+        },
+        {
+          "key": "memo",
+          "label": "メモ",
+          "type": "longtext"
+        },
+        {
+          "key": "updatedAt",
+          "label": "最終更新",
+          "type": "ro-dt"
+        },
+        {
+          "key": "updatedBy",
+          "label": "更新した人",
+          "type": "ro"
+        }
+      ]
+    },
+    "card": {
+      "tab": "名刺",
+      "table": "cards",
+      "fields": [
+        {
+          "key": "id",
+          "label": "名刺ID",
+          "type": "id"
+        },
+        {
+          "key": "date",
+          "label": "交換日",
+          "type": "date"
+        },
+        {
+          "key": "company",
+          "label": "会社名",
+          "type": "text"
+        },
+        {
+          "key": "name",
+          "label": "お名前",
+          "type": "text"
+        },
+        {
+          "key": "title",
+          "label": "役職",
+          "type": "text"
+        },
+        {
+          "key": "email",
+          "label": "メールアドレス",
+          "type": "text"
+        },
+        {
+          "key": "phone",
+          "label": "電話",
+          "type": "text"
+        },
+        {
+          "key": "address",
+          "label": "住所",
+          "type": "text"
+        },
+        {
+          "key": "url",
+          "label": "ホームページ",
+          "type": "url"
+        },
+        {
+          "key": "place",
+          "label": "交換した場所",
+          "type": "text"
+        },
+        {
+          "key": "owner",
+          "label": "交換した人",
+          "type": "person"
+        },
+        {
+          "key": "memo",
+          "label": "メモ",
+          "type": "longtext"
+        },
+        {
+          "key": "photo",
+          "label": "名刺の写真",
+          "type": "url"
+        },
+        {
+          "key": "ocr",
+          "label": "読み取った文字",
+          "type": "longtext"
+        },
+        {
+          "key": "deal",
+          "label": "商談ID",
+          "type": "ro"
+        },
+        {
+          "key": "updatedAt",
+          "label": "最終更新",
+          "type": "ro-dt"
+        },
+        {
+          "key": "updatedBy",
+          "label": "更新した人",
+          "type": "ro"
+        }
+      ]
+    },
+    "agency": {
+      "tab": "代理店",
+      "table": "agencies",
+      "fields": [
+        {
+          "key": "name",
+          "label": "代理店名",
+          "type": "text"
+        },
+        {
+          "key": "start",
+          "label": "代理店契約日",
+          "type": "date"
+        },
+        {
+          "key": "state",
+          "label": "状態",
+          "type": "choice:代理店の状態"
+        },
+        {
+          "key": "end",
+          "label": "終了日",
+          "type": "date"
+        },
+        {
+          "key": "owner",
+          "label": "担当者",
+          "type": "text"
+        },
+        {
+          "key": "contact",
+          "label": "連絡先",
+          "type": "text"
+        },
+        {
+          "key": "memo",
+          "label": "メモ",
+          "type": "longtext"
+        },
+        {
+          "key": "feeRule",
+          "label": "フィーの決め方",
+          "type": "choice:フィーの決め方"
+        },
+        {
+          "key": "kind",
+          "label": "区分",
+          "type": "choice:代理店の区分"
+        },
+        {
+          "key": "relation",
+          "label": "関係",
+          "type": "choice:関係"
+        },
+        {
+          "key": "mtg",
+          "label": "定例MTG日",
+          "type": "date"
+        },
+        {
+          "key": "imported",
+          "label": "取次先（取り込み）",
+          "type": "longtext"
+        },
+        {
+          "key": "updatedAt",
+          "label": "最終更新",
+          "type": "ro-dt"
+        },
+        {
+          "key": "updatedBy",
+          "label": "更新した人",
+          "type": "ro"
+        }
+      ]
+    },
+    "cust": {
+      "tab": "顧客",
+      "table": "customers",
+      "fields": [
+        {
+          "key": "name",
+          "label": "顧客名",
+          "type": "ro"
+        },
+        {
+          "key": "company",
+          "label": "会社名",
+          "type": "text"
+        },
+        {
+          "key": "kana",
+          "label": "読み",
+          "type": "text"
+        },
+        {
+          "key": "industry",
+          "label": "業種",
+          "type": "text"
+        },
+        {
+          "key": "service",
+          "label": "契約サービス",
+          "type": "choice:サービス"
+        },
+        {
+          "key": "kind",
+          "label": "プランの種類",
+          "type": "choice:プランの種類"
+        },
+        {
+          "key": "plan",
+          "label": "プランの本数",
+          "type": "choice:プランの本数"
+        },
+        {
+          "key": "auto",
+          "label": "自動編集の本数",
+          "type": "choice:自動編集の本数"
+        },
+        {
+          "key": "planName",
+          "label": "プラン名（自動）",
+          "type": "ro"
+        },
+        {
+          "key": "state",
+          "label": "契約状態",
+          "type": "choice:契約状態"
+        },
+        {
+          "key": "contract",
+          "label": "契約日",
+          "type": "date"
+        },
+        {
+          "key": "end",
+          "label": "契約の終わり",
+          "type": "date"
+        },
+        {
+          "key": "notice",
+          "label": "解約の申し出日",
+          "type": "date"
+        },
+        {
+          "key": "start",
+          "label": "開始日",
+          "type": "date"
+        },
+        {
+          "key": "sales",
+          "label": "担当営業",
+          "type": "person"
+        },
+        {
+          "key": "cs",
+          "label": "CS担当",
+          "type": "person"
+        },
+        {
+          "key": "materials",
+          "label": "提供した素材（リンク）",
+          "type": "links"
+        },
+        {
+          "key": "agency",
+          "label": "紹介した代理店",
+          "type": "choice:代理店"
+        },
+        {
+          "key": "source",
+          "label": "流入経路",
+          "type": "text"
+        },
+        {
+          "key": "deal",
+          "label": "商談ID",
+          "type": "ro"
+        },
+        {
+          "key": "init",
+          "label": "初期費用（税込）",
+          "type": "yen"
+        },
+        {
+          "key": "initPay",
+          "label": "初期費用の支払い方法",
+          "type": "choice:支払い方法"
+        },
+        {
+          "key": "paid",
+          "label": "初期費用の入金日",
+          "type": "date"
+        },
+        {
+          "key": "fee",
+          "label": "月額（税込）",
+          "type": "yen"
+        },
+        {
+          "key": "feePay",
+          "label": "月額の支払い方法",
+          "type": "choice:支払い方法"
+        },
+        {
+          "key": "firstCharge",
+          "label": "月額の初回の決済日",
+          "type": "date"
+        },
+        {
+          "key": "autopay",
+          "label": "定期決済の登録",
+          "type": "choice:定期決済の登録"
+        },
+        {
+          "key": "gform",
+          "label": "Googleフォーム",
+          "type": "choice:Googleフォーム"
+        },
+        {
+          "key": "csheet",
+          "label": "顧客シート",
+          "type": "url"
+        },
+        {
+          "key": "csite",
+          "label": "顧客サイト",
+          "type": "url"
+        },
+        {
+          "key": "email",
+          "label": "メールアドレス",
+          "type": "text"
+        },
+        {
+          "key": "contact",
+          "label": "連絡の手段",
+          "type": "choice:連絡の手段"
+        },
+        {
+          "key": "avatar",
+          "label": "avatar_id",
+          "type": "text"
+        },
+        {
+          "key": "voiceId",
+          "label": "voice_id",
+          "type": "text"
+        },
+        {
+          "key": "voice",
+          "label": "声の作り方",
+          "type": "choice:声の作り方"
+        },
+        {
+          "key": "menu",
+          "label": "メニューと料金表",
+          "type": "longtext"
+        },
+        {
+          "key": "howto",
+          "label": "予約・購入の方法",
+          "type": "longtext"
+        },
+        {
+          "key": "target",
+          "label": "見てほしいお客様",
+          "type": "longtext"
+        },
+        {
+          "key": "ng",
+          "label": "使えない表現",
+          "type": "longtext"
+        },
+        {
+          "key": "yomi",
+          "label": "読みの注意",
+          "type": "longtext"
+        },
+        {
+          "key": "post",
+          "label": "投稿先と頻度",
+          "type": "text"
+        },
+        {
+          "key": "folder",
+          "label": "顧客フォルダ",
+          "type": "ro"
+        },
+        {
+          "key": "lastReq",
+          "label": "最終依頼日（自動）",
+          "type": "ro"
+        },
+        {
+          "key": "idle",
+          "label": "依頼なし（日・自動）",
+          "type": "ro"
+        },
+        {
+          "key": "salesMemo",
+          "label": "備考（営業）",
+          "type": "longtext"
+        }
+      ]
+    },
+    "req": {
+      "tab": "依頼",
+      "table": "requests",
+      "fields": [
+        {
+          "key": "id",
+          "label": "依頼ID",
+          "type": "ro"
+        },
+        {
+          "key": "received",
+          "label": "受付日時",
+          "type": "dt"
+        },
+        {
+          "key": "cust",
+          "label": "顧客名",
+          "type": "ro"
+        },
+        {
+          "key": "type",
+          "label": "型",
+          "type": "ro"
+        },
+        {
+          "key": "theme",
+          "label": "何の動画か",
+          "type": "ro"
+        },
+        {
+          "key": "sales",
+          "label": "担当営業",
+          "type": "ro"
+        },
+        {
+          "key": "folder",
+          "label": "フォルダ",
+          "type": "ro"
+        },
+        {
+          "key": "status",
+          "label": "状態",
+          "type": "ro"
+        },
+        {
+          "key": "waiting",
+          "label": "誰待ち",
+          "type": "ro"
+        },
+        {
+          "key": "statusDate",
+          "label": "状態を変えた日",
+          "type": "ro"
+        },
+        {
+          "key": "ready",
+          "label": "そろった日",
+          "type": "ro"
+        },
+        {
+          "key": "ok",
+          "label": "台本OK日",
+          "type": "ro"
+        },
+        {
+          "key": "due",
+          "label": "納品予定",
+          "type": "ro"
+        },
+        {
+          "key": "waitDays",
+          "label": "お客様待ち（営業日）",
+          "type": "ro"
+        },
+        {
+          "key": "revisions",
+          "label": "修正回数",
+          "type": "ro"
+        },
+        {
+          "key": "count",
+          "label": "期間の何本目",
+          "type": "ro"
+        },
+        {
+          "key": "delivered",
+          "label": "納品日",
+          "type": "ro"
+        },
+        {
+          "key": "memo",
+          "label": "メモ",
+          "type": "ro"
+        },
+        {
+          "key": "voice",
+          "label": "声",
+          "type": "ro"
+        },
+        {
+          "key": "make",
+          "label": "作り方",
+          "type": "ro"
+        },
+        {
+          "key": "estUsd",
+          "label": "見込み HeyGen（$）",
+          "type": "ro"
+        },
+        {
+          "key": "estCr",
+          "label": "見込み ElevenLabs（cr）",
+          "type": "ro"
+        },
+        {
+          "key": "actUsd",
+          "label": "実績 HeyGen（$）",
+          "type": "ro"
+        },
+        {
+          "key": "actEl",
+          "label": "実績 ElevenLabs（$）",
+          "type": "ro"
+        }
+      ]
+    },
+    "task": {
+      "tab": "タスク",
+      "table": "tasks",
+      "fields": [
+        {
+          "key": "id",
+          "label": "タスクID",
+          "type": "id"
+        },
+        {
+          "key": "title",
+          "label": "やること",
+          "type": "text"
+        },
+        {
+          "key": "person",
+          "label": "担当",
+          "type": "person"
+        },
+        {
+          "key": "due",
+          "label": "期限",
+          "type": "date"
+        },
+        {
+          "key": "memo",
+          "label": "メモ",
+          "type": "longtext"
+        },
+        {
+          "key": "refKind",
+          "label": "つながる先の種類",
+          "type": "text"
+        },
+        {
+          "key": "refKey",
+          "label": "つながる先",
+          "type": "text"
+        },
+        {
+          "key": "done",
+          "label": "済み",
+          "type": "text"
+        },
+        {
+          "key": "doneAt",
+          "label": "済んだ日",
+          "type": "date"
+        },
+        {
+          "key": "createdBy",
+          "label": "作った人",
+          "type": "ro"
+        },
+        {
+          "key": "updatedAt",
+          "label": "最終更新",
+          "type": "ro-dt"
+        },
+        {
+          "key": "updatedBy",
+          "label": "更新した人",
+          "type": "ro"
+        }
+      ]
+    }
+  }
+}
