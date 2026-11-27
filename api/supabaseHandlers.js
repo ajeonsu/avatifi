@@ -330,6 +330,154 @@ async function appPayments(_user, fromYm, toYm) {
   };
 }
 
+function payStatusFromFlags(ok, ng) {
+  if (ok === true) return 'ok';
+  if (ng === true) return 'ng';
+  return 'open';
+}
+
+async function findPaymentByKey(payKey) {
+  const k = String(payKey || '').trim();
+  if (!k) return null;
+  const rows = await sb.select(
+    'payments',
+    `pay_key=eq.${encodeURIComponent(k)}&select=*&limit=1`
+  );
+  return Array.isArray(rows) && rows[0] ? rows[0] : null;
+}
+
+async function appPayEdit(user, pay) {
+  if (!pay || !String(pay.key || '').trim()) throw new Error('どの入金かが分かりません');
+  const key = String(pay.key).trim();
+  const hit = await findPaymentByKey(key);
+  const ok = pay.ok === true;
+  const ng = !ok && pay.ng === true;
+  const status = payStatusFromFlags(ok, ng);
+  const actual =
+    pay.actual != null && String(pay.actual).trim() !== ''
+      ? String(pay.actual).trim()
+      : ok
+        ? todayYmd()
+        : null;
+  const keepMoved = pay.keepMoved === true;
+  let dueOverride = hit ? hit.due_override || null : null;
+  if (!keepMoved && pay.moved !== undefined) {
+    const m = String(pay.moved || '').trim();
+    dueOverride = m === '' ? null : m;
+  }
+  const patch = {
+    customer: pay.customer != null ? String(pay.customer) : hit ? hit.customer : '',
+    method: pay.method != null ? String(pay.method) : hit ? hit.method : '',
+    amount: pay.amount != null ? Number(pay.amount) : hit ? hit.amount : 0,
+    due_date: hit && hit.due_date ? hit.due_date : pay.date || null,
+    due_override: dueOverride,
+    paid_at: actual,
+    status,
+    memo: pay.memo === undefined ? (hit ? hit.memo : '') : String(pay.memo || ''),
+    updated_at: new Date().toISOString(),
+    updated_by: user.name,
+  };
+  if (hit) {
+    await sb.update('payments', `pay_key=eq.${encodeURIComponent(key)}`, patch);
+  } else {
+    await sb.insert('payments', [
+      Object.assign({}, patch, {
+        pay_key: key,
+        charge_date: pay.date || null,
+      }),
+    ]);
+  }
+  return {
+    ok,
+    ng,
+    moved: dueOverride ? String(dueOverride).slice(0, 10) : '',
+  };
+}
+
+async function appPayConfirm(user, pay) {
+  const p = Object.assign({}, pay || {});
+  delete p.moved;
+  return appPayEdit(user, Object.assign(p, { keepMoved: true }));
+}
+
+async function appPayAdd(user, pay) {
+  const date = String((pay && pay.date) || '').trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error('入金予定日を入れてください');
+  const amount = Number(pay && pay.amount);
+  if (!amount) throw new Error('金額を入れてください');
+  const key = 'M' + crypto.randomBytes(6).toString('hex');
+  await sb.insert('payments', [
+    {
+      pay_key: key,
+      customer: String((pay && pay.customer) || ''),
+      method: String((pay && pay.method) || ''),
+      amount,
+      charge_date: date,
+      due_date: date,
+      paid_at: null,
+      status: 'open',
+      memo: String((pay && pay.memo) || ''),
+      updated_at: new Date().toISOString(),
+      updated_by: user.name,
+    },
+  ]);
+  return { key };
+}
+
+async function appPayDelete(user, payKey) {
+  const k = String(payKey == null ? '' : payKey).trim();
+  if (!k || k.charAt(0) !== 'M') {
+    throw new Error('消せるのは手で足した入金だけです（契約から出る入金は、顧客の契約・金額を直すと変わります）');
+  }
+  const hit = await findPaymentByKey(k);
+  if (!hit) throw new Error('この入金が見つかりません（ほかの人が消したかもしれません。読み直してください）');
+  await sb.del('payments', `pay_key=eq.${encodeURIComponent(k)}`);
+  return { ok: true };
+}
+
+async function appReqStatus(user, id, status, memo) {
+  const want = String(id || '').trim();
+  const to = String(status || '').trim();
+  if (!want) throw new Error('どの依頼かが分かりません');
+  if (!to) throw new Error('状態を入れてください');
+  const rows = await sb.select('requests', `id=eq.${encodeURIComponent(want)}&select=*&limit=1`);
+  const hit = Array.isArray(rows) ? rows[0] : null;
+  if (!hit) throw new Error('依頼が見つかりません：' + want);
+  const before = String(hit.status || '').trim();
+  const patch = {
+    status: to,
+    status_date: todayYmd(),
+    updated_at: new Date().toISOString(),
+    updated_by: user.name,
+  };
+  if (String(memo || '').trim()) {
+    const line = `${todayYmd()} ${user.name}：${String(memo).trim()}`;
+    patch.memo = hit.memo ? `${hit.memo}\n${line}` : line;
+  }
+  const updated = await sb.update('requests', `id=eq.${encodeURIComponent(want)}`, patch);
+  const row = rowToCamel(Array.isArray(updated) ? updated[0] : updated);
+  return {
+    row,
+    notes: before === to ? [] : [`状態を「${before || '（空）'}」→「${to}」にした（supabase・台帳自動は未移植）`],
+  };
+}
+
+async function appReqMemo(user, id, text) {
+  const want = String(id || '').trim();
+  if (!want) throw new Error('どの依頼かが分かりません');
+  if (!String(text || '').trim()) throw new Error('メモが空です');
+  const rows = await sb.select('requests', `id=eq.${encodeURIComponent(want)}&select=*&limit=1`);
+  const hit = Array.isArray(rows) ? rows[0] : null;
+  if (!hit) throw new Error('依頼が見つかりません：' + want);
+  const line = `${todayYmd()} ${user.name}：${String(text).trim()}`;
+  const updated = await sb.update('requests', `id=eq.${encodeURIComponent(want)}`, {
+    memo: hit.memo ? `${hit.memo}\n${line}` : line,
+    updated_at: new Date().toISOString(),
+    updated_by: user.name,
+  });
+  return { row: rowToCamel(Array.isArray(updated) ? updated[0] : updated) };
+}
+
 async function appSettings(user) {
   if (!user.admin) throw new Error('設定は管理の人だけが開けます');
   const users = await sb.select('app_users', 'select=name,roles,active&order=name.asc&limit=500');
@@ -398,6 +546,18 @@ async function dispatchSupabase(fn, args) {
       return appTaskDelete(user, rest[0]);
     case 'appPayments':
       return appPayments(user, rest[0], rest[1]);
+    case 'appPayEdit':
+      return appPayEdit(user, rest[0]);
+    case 'appPayConfirm':
+      return appPayConfirm(user, rest[0]);
+    case 'appPayAdd':
+      return appPayAdd(user, rest[0]);
+    case 'appPayDelete':
+      return appPayDelete(user, rest[0]);
+    case 'appReqStatus':
+      return appReqStatus(user, rest[0], rest[1], rest[2]);
+    case 'appReqMemo':
+      return appReqMemo(user, rest[0], rest[1]);
     case 'appSettings':
       return appSettings(user);
     default:
