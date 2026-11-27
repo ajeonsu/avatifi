@@ -126,6 +126,12 @@ async function appUserKey(user, name) {
     `name=eq.${encodeURIComponent(who)}&active=eq.true&select=id,name&limit=1`
   );
   if (!rows[0]) throw new Error(who + 'さんは「使える」になっていません');
+  // Keep the shared preview login stable (docs / smoke / boss demo).
+  if (who === 'preview' && process.env.CRM_ALLOW_PREVIEW_KEY_ROTATE !== '1') {
+    throw new Error(
+      'previewさんの専用リンクは固定です（#k=avatifi-preview-key-2026-ok）。作り直すときは CRM_ALLOW_PREVIEW_KEY_ROTATE=1'
+    );
+  }
   const passphrase = randomPassphrase();
   await sb.update('app_users', `id=eq.${rows[0].id}`, {
     passphrase_hash: sha256Hex(passphrase),

@@ -58,3 +58,26 @@ on conflict (pay_key) do update set amount = excluded.amount, due_date = exclude
 insert into payment_rules (method, note)
 select 'マネフォ', '1〜15日決済→当月末'
 where not exists (select 1 from payment_rules where method = 'マネフォ');
+
+-- People / cards for people→deal and card→deal demos
+insert into people (id, camp, camp_name, name, company, title, staff, deal, updated_at, updated_by)
+values
+  ('P00001', 'E0001', '見本セミナー', '参加者 一郎', '見本商事', '部長', 'preview', null, now(), 'preview'),
+  ('P00002', 'E0001', '見本セミナー', '参加者 二郎', 'サンプル美容院', '店長', 'preview', null, now(), 'preview')
+on conflict (id) do update set
+  camp = excluded.camp,
+  camp_name = excluded.camp_name,
+  name = excluded.name,
+  company = excluded.company,
+  deal = excluded.deal,
+  updated_at = now();
+
+insert into cards (id, date, place, owner, name, company, title, email, deal, ocr, updated_at, updated_by)
+values
+  ('N00001', '2026-11-20', '見本セミナー', 'preview', '名刺 太郎', 'カード商事', '代表', 'card@example.com', null, 'preview seed', now(), 'preview'),
+  ('N00002', '2026-11-21', null, 'preview', '名刺 花子', 'カード美容', 'スタイリスト', null, null, 'preview seed', now(), 'preview')
+on conflict (id) do update set
+  name = excluded.name,
+  company = excluded.company,
+  deal = excluded.deal,
+  updated_at = now();
