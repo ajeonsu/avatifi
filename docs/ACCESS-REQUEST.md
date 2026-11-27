@@ -41,4 +41,8 @@ Confirm preview ETA (currently ~2027-01-23 if access arrives this week).
 
 ## Progress note (2026-11-27)
 
-Supabase-backed preview is live at https://avatifi.vercel.app/ (`#k=avatifi-preview-key-2026-ok`). Core CRM + settings/people/card/history paths work on Postgres. Remaining blockers for parity / integrity are still **items 1–4** above (sheet export, Drive, Forms, Claude notes). No production cutover and no paid add-ons without your OK.
+Supabase-backed preview is live at https://avatifi.vercel.app/ (`#k=avatifi-preview-key-2026-ok`). Core CRM + settings/people/card/history + auto tasks work on Postgres.
+
+**Item 1 is the critical path** for data integrity / migration: please export or share 依頼台帳 (all tabs as CSV/XLSX is fine). Compare tool is ready: `npm run integrity:sheets -- <export-folder>` (expects `商談.csv` / `顧客.csv` / `依頼.csv` …).
+
+Remaining blockers for full parity: **items 1–4** (sheet export, Drive, Forms, Claude notes). No production cutover and no paid add-ons without your OK.
