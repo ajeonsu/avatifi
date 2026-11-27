@@ -407,10 +407,18 @@ async function appSettingsSave(user, part, rows, appSettings) {
 async function appImportHolidays(user, appSettings) {
   if (!user.admin) throw new Error('設定は管理の人だけが開けます');
   const url = 'https://www8.cao.go.jp/chosei/shukujitsu/syukujitsu.csv';
-  const res = await fetch(url);
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 12000);
+  let res;
+  try {
+    res = await fetch(url, { signal: ctrl.signal });
+  } catch (e) {
+    throw new Error('祝日CSVを取得できませんでした（タイムアウトまたは不通）：' + (e && e.message ? e.message : e));
+  } finally {
+    clearTimeout(timer);
+  }
   if (!res.ok) throw new Error('祝日CSVを取得できませんでした：' + res.status);
   const buf = Buffer.from(await res.arrayBuffer());
-  // Cabinet CSV is Shift_JIS; decode roughly via latin1 then regex dates, or use TextDecoder if available
   let text = '';
   try {
     text = new TextDecoder('shift-jis').decode(buf);
@@ -421,11 +429,17 @@ async function appImportHolidays(user, appSettings) {
     return `${m[1]}-${String(m[2]).padStart(2, '0')}-${String(m[3]).padStart(2, '0')}`;
   });
   const uniq = [...new Set(days)];
-  for (const d of uniq) {
-    const hit = await safeSelect('holidays', `day=eq.${d}&select=day&limit=1`);
-    if (!hit[0]) await sb.insert('holidays', [{ day: d }]);
+  const existing = await safeSelect('holidays', 'select=day&limit=5000');
+  const have = new Set(existing.map((r) => r.day));
+  const missing = uniq.filter((d) => !have.has(d)).map((day) => ({ day }));
+  // Batch insert to avoid hundreds of REST round-trips (Vercel timeout).
+  const CHUNK = 100;
+  for (let i = 0; i < missing.length; i += CHUNK) {
+    await sb.insert('holidays', missing.slice(i, i + CHUNK), { returning: false });
   }
-  await logHistory(user.name, '祝日を取り込んだ', '設定', [{ label: '件数', before: '', after: uniq.length }]);
+  await logHistory(user.name, '祝日を取り込んだ', '設定', [
+    { label: '件数', before: String(have.size), after: String(have.size + missing.length) },
+  ]);
   const base = await appSettings(user);
   return enrichSettings(base);
 }
