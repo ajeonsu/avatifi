@@ -11,7 +11,8 @@ Do **not** promote to production or buy paid add-ons without boss OK.
 1. Open project → **SQL Editor**.
 2. Paste `supabase/migrations/20261127_avatifi_schema_draft.sql` (uses `IF NOT EXISTS`).
 3. Run once. Confirm tables: `app_users`, `deals`, `customers`, `requests`, …
-4. (Optional seed) insert one preview user with `passphrase_hash` = SHA-256 hex of a ≥20-char passphrase (same as GAS `crmHash_`).
+4. Run `supabase/migrations/20261127_avatifi_preview_grants.sql` (anon/authenticated/service_role table grants — required while using `SUPABASE_ANON_KEY` with RLS off).
+5. (Optional seed) `scripts/seed-preview-data.sql` or insert one preview user with `passphrase_hash` = SHA-256 hex of a ≥20-char passphrase (same as GAS `crmHash_`).
 
 Env for Vercel / local (Settings → API; share keys via secure channel only):
 
