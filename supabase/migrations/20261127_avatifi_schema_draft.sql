@@ -198,9 +198,9 @@ comment on table cards is '名刺 / entity=card';
 
 create table if not exists agencies (
   name text primary key,
-  start date,
+  "start" date,
   state text,
-  end date,
+  "end" date,
   owner text,
   contact text,
   memo text,
@@ -226,9 +226,9 @@ create table if not exists customers (
   plan_name text,
   state text,
   contract date,
-  end date,
+  "end" date,
   notice date,
-  start date,
+  "start" date,
   sales text,
   cs text,
   materials text,
