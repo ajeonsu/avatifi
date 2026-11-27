@@ -2,7 +2,7 @@
 
 | Resource | URL / ref | Notes |
 |----------|-----------|--------|
-| GitHub | https://github.com/ajeonsu/avatifi | Public repo — **empty** as of 2026-11-27; scaffold will be pushed here |
+| GitHub | https://github.com/ajeonsu/avatifi | Public repo — scaffold on `main` (initial commit 2026-11-27) |
 | Vercel team | https://vercel.com/taoyagi-4963s-projects | Host Vue UI + `/api/crm` preview |
 | Supabase project | https://supabase.com/dashboard/project/qxzftftbvgysgzhqgfoz | Project ref `qxzftftbvgysgzhqgfoz` · API host `https://qxzftftbvgysgzhqgfoz.supabase.co` |
 
