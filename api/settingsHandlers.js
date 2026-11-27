@@ -433,9 +433,15 @@ async function appImportHolidays(user, appSettings) {
   const have = new Set(existing.map((r) => r.day));
   const missing = uniq.filter((d) => !have.has(d)).map((day) => ({ day }));
   // Batch insert to avoid hundreds of REST round-trips (Vercel timeout).
+  // Prefer ignore-duplicates so a partial prior import / race does not 409.
   const CHUNK = 100;
   for (let i = 0; i < missing.length; i += CHUNK) {
-    await sb.insert('holidays', missing.slice(i, i + CHUNK), { returning: false });
+    await sb.rest('holidays', {
+      method: 'POST',
+      query: 'on_conflict=day',
+      body: missing.slice(i, i + CHUNK),
+      prefer: 'resolution=ignore-duplicates,return=minimal',
+    });
   }
   await logHistory(user.name, '祝日を取り込んだ', '設定', [
     { label: '件数', before: String(have.size), after: String(have.size + missing.length) },
