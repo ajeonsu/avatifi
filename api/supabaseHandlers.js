@@ -8,6 +8,39 @@ const crypto = require('crypto');
 const sb = require('./supabaseClient');
 const { STAGES } = require('./mockStore');
 const { rowToCamel, rowsToCamel, patchToSnake, paymentToUi } = require('./fieldMap');
+const analytics = require('./analyticsHandlers');
+
+async function safeSelect(table, query) {
+  try {
+    const rows = await sb.select(table, query);
+    return Array.isArray(rows) ? rows : [];
+  } catch {
+    return [];
+  }
+}
+
+async function loadCoreTables() {
+  const [deals, custs, reqs, payRaw, camps, agencies, feeRows, plans] = await Promise.all([
+    safeSelect('deals', 'select=*&limit=5000'),
+    safeSelect('customers', 'select=*&limit=5000'),
+    safeSelect('requests', 'select=*&limit=5000'),
+    safeSelect('payments', 'select=*&limit=5000'),
+    safeSelect('campaigns', 'select=*&limit=5000'),
+    safeSelect('agencies', 'select=*&limit=5000'),
+    safeSelect('fee_payouts', 'select=*&limit=5000'),
+    safeSelect('revenue_plans', 'select=*&limit=500'),
+  ]);
+  return {
+    deals: rowsToCamel(deals),
+    custs: rowsToCamel(custs),
+    reqs: rowsToCamel(reqs),
+    pays: payRaw.map(paymentToUi),
+    camps: rowsToCamel(camps),
+    agencies: rowsToCamel(agencies),
+    feeRows,
+    plans,
+  };
+}
 
 function sha256Hex(s) {
   return crypto.createHash('sha256').update(String(s), 'utf8').digest('hex');
@@ -166,31 +199,11 @@ async function appHome(user, mineOnly) {
   const mine = mineOnly !== false;
   const me = (n) => !mine || n === user.name;
 
-  let deals = [];
-  let custs = [];
-  let reqs = [];
-  let pays = [];
-  try {
-    deals = rowsToCamel(await sb.select('deals', 'select=*&limit=5000'));
-  } catch {
-    deals = [];
-  }
-  try {
-    custs = rowsToCamel(await sb.select('customers', 'select=*&limit=5000'));
-  } catch {
-    custs = [];
-  }
-  try {
-    reqs = rowsToCamel(await sb.select('requests', 'select=*&limit=5000'));
-  } catch {
-    reqs = [];
-  }
-  try {
-    const payRows = await sb.select('payments', 'select=*&limit=5000');
-    pays = (Array.isArray(payRows) ? payRows : []).map(paymentToUi);
-  } catch {
-    pays = [];
-  }
+  const core = await loadCoreTables();
+  const deals = core.deals;
+  const custs = core.custs;
+  const reqs = core.reqs;
+  const pays = core.pays;
 
   const pick = (list, n) => list.slice(0, n || 50);
   const lists = {
@@ -722,26 +735,10 @@ async function appGoals(user, ym) {
   const NONE = '（リード元なし）';
   const sources = BOOT_LISTS.経路 || [];
 
-  let deals = [];
-  let custs = [];
-  let camps = [];
-  try {
-    deals = rowsToCamel(await sb.select('deals', 'select=*&limit=5000'));
-  } catch {
-    deals = [];
-  }
-  try {
-    custs = rowsToCamel(await sb.select('customers', 'select=*&limit=5000'));
-  } catch {
-    custs = [];
-  }
-  try {
-    camps = rowsToCamel(await sb.select('campaigns', 'select=id,name,date,kind&limit=5000'));
-  } catch {
-    camps = [];
-  }
-
-  const targets = await loadKpiTargets(month);
+  const [core, targets] = await Promise.all([loadCoreTables(), loadKpiTargets(month)]);
+  const deals = core.deals;
+  const custs = core.custs;
+  const camps = core.camps;
   const persons = [...new Set(targets.map((t) => t.person).filter(Boolean))];
   const owner = persons.indexOf(user.name) >= 0 ? user.name : persons[0] || user.name;
   const mine = targets.filter((t) => t.person === owner);
@@ -1043,6 +1040,121 @@ async function dispatchSupabase(fn, args) {
       return appGoalSave(user, rest[0], rest[1], rest[2]);
     case 'appKpiTargets':
       return appKpiTargets(user, rest[0], rest[1], rest[2]);
+    case 'appAnalysis': {
+      const core = await loadCoreTables();
+      const fromM = String(rest[0] || ymNow()).trim();
+      const toM = String(rest[1] || fromM).trim();
+      const months = [];
+      let cur = fromM;
+      while (cur <= toM && months.length < 36) {
+        months.push(cur);
+        const [y, m] = cur.split('-').map(Number);
+        const d = new Date(y, m, 1);
+        cur = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      }
+      const targetSets = await Promise.all(months.map((ym) => loadKpiTargets(ym)));
+      const targets = targetSets.flat().map((t) => Object.assign({ ym: t.ym }, t));
+      return analytics.appAnalysis({
+        deals: core.deals,
+        custs: core.custs,
+        camps: core.camps,
+        targets,
+        fromYm: rest[0],
+        toYm: rest[1],
+        group: rest[2],
+      });
+    }
+    case 'appRevenue': {
+      const core = await loadCoreTables();
+      return analytics.appRevenue({
+        custs: core.custs,
+        reqs: core.reqs,
+        plans: core.plans,
+        fromYm: rest[0],
+        toYm: rest[1],
+      });
+    }
+    case 'appRevenuePlan': {
+      const ym = String(rest[0] || '').trim();
+      if (!analytics.ymOk(ym)) throw new Error('月は 2026-12 の形で');
+      const s = String(rest[1] == null ? '' : rest[1]).trim();
+      if (s !== '' && (Number.isNaN(Number(s)) || Number(s) < 0)) {
+        throw new Error('新規の見込みは 0 以上の数字で入れてください：' + rest[1]);
+      }
+      const existing = await safeSelect(
+        'revenue_plans',
+        `ym=eq.${encodeURIComponent(ym)}&select=ym&limit=1`
+      );
+      const patch = { ym, plan_new: s === '' ? null : Number(s), updated_at: new Date().toISOString(), updated_by: user.name };
+      if (existing[0]) await sb.update('revenue_plans', `ym=eq.${encodeURIComponent(ym)}`, patch);
+      else await sb.insert('revenue_plans', [patch]);
+      return { ok: true };
+    }
+    case 'appChurn': {
+      const core = await loadCoreTables();
+      return analytics.appChurn({ custs: core.custs, reqs: core.reqs, fromYm: rest[0], toYm: rest[1] });
+    }
+    case 'appCustomerActivity': {
+      const core = await loadCoreTables();
+      return analytics.appCustomerActivity({
+        custs: core.custs,
+        reqs: core.reqs,
+        fromYm: rest[0],
+        toYm: rest[1],
+      });
+    }
+    case 'appAgencyStats': {
+      const core = await loadCoreTables();
+      return analytics.appAgencyStats({
+        agencies: core.agencies,
+        deals: core.deals,
+        custs: core.custs,
+        fromYm: rest[0],
+        toYm: rest[1],
+      });
+    }
+    case 'appFeePayouts': {
+      const core = await loadCoreTables();
+      return analytics.appFeePayouts({
+        agencies: core.agencies,
+        feeRows: core.feeRows,
+        month: rest[0],
+        fromYm: rest[1],
+        toYm: rest[2],
+      });
+    }
+    case 'appFeeSave': {
+      const month = String(rest[0] || '').trim();
+      const agency = String(rest[1] || '').trim();
+      const patchIn = rest[2] || {};
+      if (!analytics.ymOk(month)) throw new Error('月は 2026-11 の形で');
+      if (!agency) throw new Error('代理店を選んでください');
+      const existing = await safeSelect(
+        'fee_payouts',
+        `pay_month=eq.${encodeURIComponent(month)}&agency=eq.${encodeURIComponent(agency)}&select=id&limit=1`
+      );
+      const patch = {
+        pay_month: month,
+        agency,
+        updated_at: new Date().toISOString(),
+        updated_by: user.name,
+      };
+      if (patchIn.adj !== undefined) patch.adjust_incl_tax = patchIn.adj === '' || patchIn.adj == null ? null : Number(patchIn.adj);
+      if (patchIn.paid !== undefined) patch.paid_incl_tax = patchIn.paid === '' || patchIn.paid == null ? null : Number(patchIn.paid);
+      if (patchIn.paidDate !== undefined) patch.paid_on = patchIn.paidDate || null;
+      if (patchIn.memo !== undefined) patch.memo = String(patchIn.memo || '');
+      if (existing[0]) await sb.update('fee_payouts', `id=eq.${existing[0].id}`, patch);
+      else await sb.insert('fee_payouts', [patch]);
+      return { ok: true };
+    }
+    case 'appReferrals': {
+      const core = await loadCoreTables();
+      return analytics.appReferrals({
+        custs: core.custs,
+        reqs: core.reqs,
+        agencies: core.agencies,
+      });
+    }
     case 'appSettings':
       return appSettings(user);
     default:
