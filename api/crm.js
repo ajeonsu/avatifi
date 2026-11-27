@@ -3,7 +3,11 @@
  * Body: text/plain JSON { crm:1, fn, args:[passphrase,...] }
  * Response: { ok, crm:1, value } | { ok:false, crm:1, error }  (Vue UI requires crm:1)
  *
- * Order: CRM_MOCK=1 → mock store; else Supabase env → supabaseHandlers; else 501.
+ * Order:
+ *   CRM_MOCK=1 → mock store
+ *   else Supabase env → supabaseHandlers
+ *     (CRM_FALLBACK_MOCK=1 → unimplemented fns fall back to mock)
+ *   else 501
  */
 
 const { dispatchMock } = require('./mockStore');
@@ -25,6 +29,11 @@ const ALLOWED = new Set([
 
 function useMock() {
   const raw = process.env.CRM_MOCK;
+  return raw === '1' || String(raw || '').toLowerCase() === 'true';
+}
+
+function useFallbackMock() {
+  const raw = process.env.CRM_FALLBACK_MOCK;
   return raw === '1' || String(raw || '').toLowerCase() === 'true';
 }
 
@@ -89,6 +98,19 @@ module.exports = async function handler(req, res) {
       const value = await dispatchSupabase(body.fn, args);
       if (value != null) {
         return sendJson(res, 200, { ok: true, crm: 1, value });
+      }
+      if (useFallbackMock()) {
+        try {
+          const mockVal = dispatchMock(body.fn, args);
+          return sendJson(res, 200, { ok: true, crm: 1, value: mockVal });
+        } catch (mockErr) {
+          const status = mockErr && mockErr.status ? mockErr.status : 501;
+          return sendJson(res, status, {
+            ok: false,
+            crm: 1,
+            error: mockErr.message || `${body.fn} not implemented on Supabase yet`,
+          });
+        }
       }
       return sendJson(res, 501, {
         ok: false,
